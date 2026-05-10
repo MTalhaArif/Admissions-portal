@@ -11,14 +11,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-const isConfigured = !!firebaseConfig.apiKey;
+const isConfiguredCheck = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== 'your-api-key';
 
 let app, auth, db;
+let isConfigured = false;
 
-if (isConfigured) {
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  auth = getAuth(app);
-  db = getFirestore(app);
+if (isConfiguredCheck) {
+  try {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+    isConfigured = true;
+  } catch (error) {
+    console.warn('Firebase initialization error. Running in mock mode.', error.message);
+    app = { mock: true };
+    auth = { mock: true };
+    db = { mock: true };
+  }
 } else {
   console.warn('Firebase API Key missing. Running in mock mode.');
   app = { mock: true };
