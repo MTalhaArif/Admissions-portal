@@ -1,23 +1,34 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, Box, Typography, TextField, Button, IconButton, CircularProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, Box, Typography, TextField, Button, IconButton, CircularProgress, Tabs, Tab } from '@mui/material';
 import { X } from 'lucide-react';
-import { loginUser } from '@/lib/firebase/services/auth';
+import { loginUser, registerUser } from '@/lib/firebase/services/auth';
 
 export default function LoginModal({ open, onClose, onLoginSuccess }) {
+  const [mode, setMode] = useState('login'); // 'login' or 'signup'
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleModeChange = (event, newValue) => {
+    setMode(newValue);
+    setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
-    // Attempt Firebase login
-    const result = await loginUser(email, password);
+    let result;
+    if (mode === 'login') {
+      result = await loginUser(email, password);
+    } else {
+      result = await registerUser(email, password, name);
+    }
     
     if (result.success) {
       onLoginSuccess(email, result.user);
@@ -30,15 +41,20 @@ export default function LoginModal({ open, onClose, onLoginSuccess }) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '16px', p: 1 } }}>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>Login</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>Welcome</Typography>
         <IconButton onClick={onClose} size="small" disabled={loading}>
           <X size={20} />
         </IconButton>
       </DialogTitle>
       
       <DialogContent>
-        <Typography variant="body2" sx={{ color: '#666', mb: 3 }}>
-          Please enter your login information
+        <Tabs value={mode} onChange={handleModeChange} variant="fullWidth" sx={{ mb: 3 }}>
+          <Tab label="Login" value="login" sx={{ fontWeight: 600 }} />
+          <Tab label="Sign Up" value="signup" sx={{ fontWeight: 600 }} />
+        </Tabs>
+
+        <Typography variant="body2" sx={{ color: '#666', mb: 3, textAlign: 'center' }}>
+          {mode === 'login' ? 'Log in to your account to continue.' : 'Create an account to start your journey.'}
         </Typography>
         
         {error && (
@@ -48,6 +64,18 @@ export default function LoginModal({ open, onClose, onLoginSuccess }) {
         )}
         
         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          {mode === 'signup' && (
+            <TextField 
+              label="Full Name" 
+              variant="outlined" 
+              fullWidth 
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={loading}
+            />
+          )}
+
           <TextField 
             label="Email Address" 
             variant="outlined" 
@@ -69,9 +97,11 @@ export default function LoginModal({ open, onClose, onLoginSuccess }) {
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
             />
-            <Typography variant="body2" sx={{ textAlign: 'right', mt: 1, color: 'primary.main', cursor: 'pointer', fontWeight: 600 }}>
-              Forgot your password?
-            </Typography>
+            {mode === 'login' && (
+              <Typography variant="body2" sx={{ textAlign: 'right', mt: 1, color: 'primary.main', cursor: 'pointer', fontWeight: 600 }}>
+                Forgot your password?
+              </Typography>
+            )}
           </Box>
           
           <Button 
@@ -84,7 +114,7 @@ export default function LoginModal({ open, onClose, onLoginSuccess }) {
             disabled={loading}
             sx={{ borderRadius: '8px', fontWeight: 700, py: 1.5, mt: 1 }}
           >
-            {loading ? <CircularProgress size={24} color="inherit" /> : 'LOGIN'}
+            {loading ? <CircularProgress size={24} color="inherit" /> : (mode === 'login' ? 'LOGIN' : 'SIGN UP')}
           </Button>
         </Box>
       </DialogContent>

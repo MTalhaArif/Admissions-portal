@@ -1,5 +1,22 @@
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, isConfigured } from '../config';
+import { createUserProfile } from './users';
+
+export const registerUser = async (email, password, name) => {
+  if (!isConfigured) {
+    console.warn("Mock register successful.");
+    return { success: true, user: { uid: 'mock_uid', email } };
+  }
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Create the Firestore profile
+    await createUserProfile(userCredential.user.uid, { email, name, role: 'user' });
+    return { success: true, user: userCredential.user };
+  } catch (error) {
+    console.error('Register error:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 export const loginUser = async (email, password) => {
   if (!isConfigured) {

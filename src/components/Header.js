@@ -1,57 +1,81 @@
 'use client';
 
-import React from 'react';
-import { AppBar, Toolbar, Typography, Button, Box, IconButton, Container } from '@mui/material';
-import { Search, Globe, MapPin, BookOpen, Settings } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AppBar, Toolbar, Typography, Button, Box, Container, IconButton } from '@mui/material';
+import { Search, Globe, MapPin, BookOpen, User, LogOut } from 'lucide-react';
+import Link from 'next/link';
+import { auth } from '@/lib/firebase/config';
+import { onAuthStateChanged } from 'firebase/auth';
+import { logoutUser } from '@/lib/firebase/services/auth';
 
 export default function Header({ onLoginClick }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Check if auth is available before subscribing to prevent crash on mock fallback
+    if (auth && typeof auth.onAuthStateChanged === 'function') {
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        setUser(currentUser);
+      });
+      return () => unsubscribe();
+    } else {
+      // Mock mode fallback
+      setUser(null);
+    }
+  }, []);
+
+  const handleLogout = async () => {
+    await logoutUser();
+    window.location.href = '/';
+  };
+
   return (
-    <AppBar position="sticky" color="inherit" elevation={1} sx={{ bgcolor: 'white', zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+    <AppBar position="sticky" sx={{ bgcolor: 'white', color: 'text.primary', elevation: 0, borderBottom: '1px solid #eaeaea' }}>
       <Container maxWidth="xl">
-        <Toolbar disableGutters sx={{ minHeight: '80px', display: 'flex', justifyContent: 'space-between' }}>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.5px', color: '#171717', mr: 6, cursor: 'pointer' }}>
+        <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
+          <Box component={Link} href="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
+            <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: '-1px' }}>
               Admissions Turkey
             </Typography>
-            
-            <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 4 }}>
-              <Button color="inherit" startIcon={<Search size={18} />} sx={{ textTransform: 'none', color: '#555', fontWeight: 500 }}>
-                Find Your Study
-              </Button>
-              <Button color="inherit" startIcon={<Globe size={18} />} sx={{ textTransform: 'none', color: '#555', fontWeight: 500 }}>
-                Countries
-              </Button>
-              <Button color="inherit" startIcon={<MapPin size={18} />} sx={{ textTransform: 'none', color: '#555', fontWeight: 500 }}>
-                Branches
-              </Button>
-              <Button color="inherit" startIcon={<BookOpen size={18} />} sx={{ textTransform: 'none', color: '#555', fontWeight: 500 }}>
-                Blogs
-              </Button>
-            </Box>
           </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              disableElevation
-              onClick={onLoginClick}
-              sx={{ 
-                borderRadius: '8px', 
-                fontWeight: 600, 
-                px: 3, 
-                py: 1,
-                textTransform: 'none',
-              }}
-            >
-              LOGIN
-            </Button>
-            <IconButton color="inherit" sx={{ color: '#555' }}>
-              <Settings size={22} />
-            </IconButton>
+          
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 4 }}>
+            <Button component={Link} href="/programs" color="inherit" startIcon={<Search size={18} />} sx={{ textTransform: 'none', fontWeight: 600 }}>Find Your Study</Button>
+            <Button component={Link} href="/countries" color="inherit" startIcon={<Globe size={18} />} sx={{ textTransform: 'none', fontWeight: 600 }}>Countries</Button>
+            <Button component={Link} href="#" color="inherit" startIcon={<MapPin size={18} />} sx={{ textTransform: 'none', fontWeight: 600 }}>Branches</Button>
+            <Button component={Link} href="#" color="inherit" startIcon={<BookOpen size={18} />} sx={{ textTransform: 'none', fontWeight: 600 }}>Blogs</Button>
           </Box>
-
+          
+          <Box>
+            {user ? (
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <Button 
+                  component={Link} 
+                  href={user.email?.includes('admin') ? '/admin' : '/dashboard'} 
+                  variant="contained" 
+                  color="primary" 
+                  startIcon={<User size={18} />}
+                  sx={{ borderRadius: '8px', fontWeight: 700, px: 3, py: 1 }}
+                  disableElevation
+                >
+                  {user.email?.includes('admin') ? 'Admin Panel' : 'Dashboard'}
+                </Button>
+                <IconButton onClick={handleLogout} color="error" title="Logout">
+                  <LogOut size={20} />
+                </IconButton>
+              </Box>
+            ) : (
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={onLoginClick}
+                sx={{ borderRadius: '8px', fontWeight: 700, px: 4, py: 1 }}
+                disableElevation
+              >
+                LOGIN
+              </Button>
+            )}
+          </Box>
         </Toolbar>
       </Container>
     </AppBar>
